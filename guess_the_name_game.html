@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เกมใบ้ชื่อกับน้อง</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+      background-color: #f5f7fa;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    #app { 
+      width: 100%;
+      max-width: 480px;
+      min-height: 600px; 
+      padding: 2rem 1.5rem; 
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .screen { display: none; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; }
+
+    .intro-screen { text-align: center; }
+    .title-big { font-size: 32px; font-weight: bold; color: #1e293b; line-height: 1.3; }
+    .subtitle { font-size: 16px; color: #64748b; margin-top: 0.5rem; }
+    
+    .btn-start, .btn-replay {
+      margin-top: 1.5rem;
+      padding: 16px 40px;
+      font-size: 18px;
+      font-weight: 600;
+      background: #4f46e5;
+      border: none;
+      border-radius: 16px;
+      color: #ffffff;
+      cursor: pointer;
+      width: 100%;
+      max-width: 280px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+    .btn-start:hover, .btn-replay:hover { background: #4338ca; transform: translateY(-2px); }
+
+    .game-screen { gap: 1.2rem; width: 100%; }
+    .progress-container { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+    .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #4f46e5; border-radius: 4px; transition: width 0.3s; }
+    .round-label { font-size: 13px; color: #64748b; text-align: right; font-weight: 500; }
+    
+    .clue-box {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 1.5rem;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+    }
+    .clue-uploaded-img { max-width: 100%; max-height: 240px; border-radius: 12px; object-fit: contain; }
+    .clue-text-hint { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; }
+    .clue-emoji { font-size: 50px; }
+    .clue-text-content { font-size: 16px; color: #334155; line-height: 1.6; font-weight: 500; white-space: pre-line; }
+
+    .answer-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 16px;
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      color: #1e293b;
+      text-align: center;
+      font-weight: 500;
+      transition: border-color 0.2s;
+    }
+    .answer-input:focus { outline: none; border-color: #4f46e5; }
+
+    .btn-check, .btn-next {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-check { background: #1e293b; color: #fff; }
+    .btn-check:hover { background: #0f172a; }
+    .btn-next { background: #4f46e5; color: #fff; display: none; }
+    .btn-next:hover { background: #4338ca; }
+
+    .feedback-banner {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      display: none;
+      animation: popIn 0.3s ease;
+    }
+    @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .feedback-banner.correct { display: block; background: #dcfce7; color: #15803d; }
+    .feedback-banner.wrong { display: block; background: #fee2e2; color: #b91c1c; }
+
+    .score-row { display: flex; gap: 12px; width: 100%; }
+    .score-card { flex: 1; background: #f1f5f9; border-radius: 14px; padding: 12px; text-align: center; }
+    .score-card .sc-val { font-size: 26px; font-weight: bold; color: #1e293b; }
+    .score-card .sc-label { font-size: 12px; color: #64748b; margin-top: 2px; font-weight: 500; }
+
+    .result-screen { text-align: center; }
+    .result-title { font-size: 28px; font-weight: bold; color: #1e293b; }
+    .result-score { font-size: 56px; font-weight: bold; color: #4f46e5; margin: 0.5rem 0; }
+    .result-sub { font-size: 16px; color: #64748b; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="intro" class="screen active intro-screen">
+    <div style="font-size: 64px; margin-bottom: 0.5rem;">🎯</div>
+    <p class="title-big">เกมใบ้ชื่อ<br>กับน้อง</p>
+    <p class="subtitle">ดูภาพและอ่านคำใบ้ แล้วทายให้ถูกนะ!</p>
+    <button class="btn-start" onclick="startGame()">เริ่มเลย!</button>
+  </div>
+
+  <div id="game" class="screen game-screen">
+    <div class="score-row">
+      <div class="score-card"><div class="sc-val" id="scoreVal">0</div><div class="sc-label">คะแนน</div></div>
+      <div class="score-card"><div class="sc-val" id="streakVal">0</div><div class="sc-label">ถูกต่อเนื่อง</div></div>
+    </div>
+    
+    <div class="progress-container">
+      <div class="round-label" id="roundLabel">ข้อ 1 / 5</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="clue-box" id="clueBox"></div>
+    <div class="feedback-banner" id="feedbackBanner"></div>
+    
+    <input class="answer-input" id="answerInput" placeholder="พิมพ์คำตอบที่นี่..." autocomplete="off" />
+    <button class="btn-check" id="btnCheck" onclick="checkAnswer()">ตรวจคำตอบ</button>
+    <button class="btn-next" id="btnNext" onclick="nextQuestion()">ข้อถัดไป →</button>
+  </div>
+
+  <div id="result" class="screen result-screen">
+    <div style="font-size: 64px;">🏆</div>
+    <p class="result-title" id="resultTitle">จบเกมแล้ว!</p>
+    <p class="result-score" id="resultScore">0 / 5</p>
+    <p class="result-sub" id="resultSub"></p>
+    <button class="btn-replay" onclick="goIntro()">เล่นอีกรอบ</button>
+  </div>
+</div>
+
+<script>
+// ชุดข้อมูลคำถามที่ดึงมาจากรูปภาพและข้อความที่คุณระบุไว้
+const predefinedQuestions = [
+  {
+    // รูปที่ 1: วง Three Man Down - ฝนตกไหม
+    type: "image",
+    answer: "ฝนตกไหม",
+    hint: "ฉันคืออะไรน้าาาา",
+    img: "0.1.png"
+  },
+  {
+    // รูปที่ 2: นนท์ ธนนท์ - โต๊ะริม
+    type: "image",
+    answer: "โต๊ะริม",
+    hint: "ฉันคืออะไรน้าาาา",
+    img: "0.2.png"
+  },
+  {
+    // รูปที่ 3: Serious Bacon (พี่ๆ ตัดแว่นให้หน่อย)
+    type: "image",
+    answer: "พี่ๆตัดแว่นให้หน่อย",
+    hint: "ฉันคืออะไรน้าาาา",
+    img: "0.3.png"
+  },
+  {
+    // รูปที่ 4: โครงสร้างใยของ Cilia/Flagellum (9+2)
+    type: "image",
+    answer: "2",
+    hint: "9+_____",
+    img: "2.png"
+  },
+  {
+    // คำถามที่ 5: ปริศนาเคมี K S
+    type: "text",
+    answer: "K S",
+    hint: "พวกเราชอบความสันโดษ เวลาไปปรากฏตัวในสมการเคมี จึงมักจะยืนหยัดด้วย 'รูปลักษณ์เพียงหนึ่งเดียว' ไม่ยอมให้ใครมาเขียนต่อท้าย\n\nตัวหนึ่งแฝงในถั่ว รักษาสมดุลกาย คุมประสาท คุมกรด-ด่าง ร่ายมนตร์ทำสบู่\nอีกตัวจากโบราณ กลิ่นสาปร้ายน่าดู รวมสูตรเคมีคู่... เป็นดินปืนระเบิดตูม!\n\n(เวลาตอบให้เว้น 1 space bar และเป็นพิมพ์ใหญ่ EX. A B)",
+    emoji: "🧪"
+  }
+];
+
+let gameQuestions = [];
+let current = 0;
+let score = 0;
+let streak = 0;
+
+document.getElementById('answerInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !document.getElementById('btnCheck').disabled && document.getElementById('btnCheck').style.display !== 'none') {
+    checkAnswer();
+  } else if (e.key === 'Enter' && document.getElementById('btnNext').style.display === 'block') {
+    nextQuestion();
+  }
+});
+
+function startGame() {
+  current = 0; score = 0; streak = 0;
+  // สุ่มคำถามเพื่อให้ตื่นเต้นตอนเล่น
+  gameQuestions = [...predefinedQuestions].sort(() => Math.random() - 0.5);
+  showScreen('game');
+  loadQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function loadQuestion() {
+  const q = gameQuestions[current];
+  document.getElementById('roundLabel').textContent = `ข้อ ${current + 1} / ${gameQuestions.length}`;
+  document.getElementById('progressFill').style.width = (((current) / gameQuestions.length) * 100) + '%';
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('streakVal').textContent = streak;
+  
+  const inputEl = document.getElementById('answerInput');
+  inputEl.value = '';
+  inputEl.disabled = false;
+  
+  if(q.answer === "K S") {
+    inputEl.placeholder = "ตัวอย่างการตอบ: A B";
+  } else {
+    inputEl.placeholder = "พิมพ์คำตอบที่นี่...";
+  }
+
+  document.getElementById('btnCheck').style.display = 'block';
+  document.getElementById('btnCheck').disabled = false;
+  document.getElementById('btnNext').style.display = 'none';
+  document.getElementById('feedbackBanner').className = 'feedback-banner';
+
+  const box = document.getElementById('clueBox');
+  if (q.type === "image") {
+    box.innerHTML = `
+      <img src="${q.img}" class="clue-uploaded-img" alt="คำใบ้รูปภาพ" onerror="this.onerror=null; this.parentElement.innerHTML='<p style=\'color:red; font-size:14px;\'>ไม่พบไฟล์ภาพ ${q.img}<br>โปรดวางไฟล์ภาพไว้ในโฟลเดอร์เดียวกับไฟล์เกมนี้</p>'"/>
+      <p style="font-size: 15px; color: #475569; font-weight: 600; margin-top: 5px;">${q.hint}</p>
+    `;
+  } else {
+    box.innerHTML = `
+      <div class="clue-text-hint">
+        <div class="clue-emoji">${q.emoji}</div>
+        <p class="clue-text-content">${q.hint}</p>
+      </div>
+    `;
+  }
+  inputEl.focus();
+}
+
+function normalize(s) {
+  // ฟังก์ชันลบช่องว่างทั้งหมดออกสำหรับคำตอบทั่วไป ยกเว้นข้อ "K S" ที่ต้องการตรวจสเปซบาร์อย่างชัดเจน
+  return s.trim();
+}
+
+function checkAnswer() {
+  const q = gameQuestions[current];
+  const input = document.getElementById('answerInput').value;
+  if (!input.trim()) return;
+
+  document.getElementById('answerInput').disabled = true;
+  document.getElementById('btnCheck').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'block';
+
+  const banner = document.getElementById('feedbackBanner');
+  
+  let isCorrect = false;
+  if (q.answer === "K S") {
+    // ตรวจสอบข้อ K S แบบตรงตัวตามเงื่อนไข (พิมพ์ใหญ่และเว้นวรรค 1 ช่อง)
+    isCorrect = (input.trim() === "K S");
+  } else {
+    // คำตอบทั่วไป ยืดหยุ่นเรื่องช่องว่างและการพิมพ์ตัวเล็ก/ใหญ่
+    const userAns = input.replace(/\s+/g, '').toLowerCase();
+    const targetAns = q.answer.replace(/\s+/g, '').toLowerCase();
+    isCorrect = (userAns === targetAns);
+  }
+
+  if (isCorrect) {
+    score++; streak++;
+    document.getElementById('scoreVal').textContent = score;
+    document.getElementById('streakVal').textContent = streak;
+    banner.textContent = streak >= 3 ? `ถูกต้อง! 🎉 เก่งมาก ถูกติดต่อกัน ${streak} ข้อแล้ว!` : 'ถูกต้อง! ✨ ทำได้ดีมาก';
+    banner.className = 'feedback-banner correct';
+  } else {
+    streak = 0;
+    document.getElementById('streakVal').textContent = streak;
+    banner.textContent = `ยังไม่ถูกน้า ~ `;
+    banner.className = 'feedback-banner wrong';
+  }
+  
+  document.getElementById('btnNext').textContent = current < gameQuestions.length - 1 ? 'ข้อถัดไป →' : 'ดูผลคะแนน';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= gameQuestions.length) {
+    showResult();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResult() {
+  showScreen('result');
+  document.getElementById('resultScore').textContent = `${score} / ${gameQuestions.length}`;
+  const pct = Math.round((score / gameQuestions.length) * 100);
+  
+  let msg = 'พยายามใหม่อีกรอบนะจ๊ะน้องรัก! 💪';
+  if (pct === 100) msg = 'สุดยอดเลย! ตอบถูกหมดทุกข้อ เพอร์เฟคมากๆ! 🏆🔥';
+  else if (pct >= 70) msg = 'เก่งมากเลย! เกือบจะเต็มแล้วเชียว 🌟';
+  else if (pct >= 40) msg = 'ผ่านครึ่งนึงพอดี! ฝึกฝนอีกนิดเก่งขึ้นแน่นอน 👍';
+  
+  document.getElementById('resultSub').textContent = msg;
+  document.getElementById('resultTitle').textContent = pct === 100 ? 'อัจฉริยะตัวจริง!' : 'จบเกมแล้ว!';
+}
+
+function goIntro() {
+  showScreen('intro');
+}
+</script>
+
+</body>
+</html>
